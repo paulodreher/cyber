@@ -16,10 +16,10 @@ st.set_page_config(
 )
 
 # ── Local imports ────────────────────────────────────────────────────────────
-from data.vulnerabilities import VULNERABILITIES
-from components.vuln_detail import render_vuln_detail
-from components.qa_panel import render_qa_panel
-from components.summary import render_summary, mark_visited
+from data.vulnerabilities import VULNERABILITIES  # noqa: E402
+from components.vuln_detail import render_vuln_detail  # noqa: E402
+from components.qa_panel import render_qa_panel  # noqa: E402
+from components.summary import render_summary, mark_visited  # noqa: E402
 
 # ── Global CSS ───────────────────────────────────────────────────────────────
 st.markdown(
@@ -170,180 +170,12 @@ st.markdown(
 )
 
 
-# ── Session state init ────────────────────────────────────────────────────────
-if "visited" not in st.session_state:
-    st.session_state.visited = set()
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "summary"
-
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    # Logo / title block
-    st.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #0f1923 0%, #1a2535 100%);
-            border: 1px solid #e74c3c44;
-            border-radius: 12px;
-            padding: 20px 16px;
-            margin-bottom: 20px;
-            text-align: center;
-        ">
-            <div style="font-size: 2.5rem; margin-bottom: 8px;">🔐</div>
-            <div style="
-                color: #e74c3c;
-                font-size: 1.1rem;
-                font-weight: 700;
-                font-family: 'Courier New', monospace;
-                letter-spacing: 1px;
-            ">OWASP API Security</div>
-            <div style="color: #8b949e; font-size: 0.8rem; margin-top: 4px;">
-                Top 10 — 2023 Edition
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Navigation header
-    st.markdown(
-        "<p style='color:#8b949e; font-size:0.78rem; text-transform:uppercase; "
-        "letter-spacing:2px; margin-bottom:8px;'>Navigation</p>",
-        unsafe_allow_html=True,
-    )
-
-    # Summary button
-    visited_count = len(st.session_state.visited)
-    total_count = len(VULNERABILITIES)
-
-    if st.button(
-        f"📊 Dashboard  ({visited_count}/{total_count} studied)",
-        key="nav_summary",
-        use_container_width=True,
-    ):
-        st.session_state.current_page = "summary"
-        st.rerun()
-
-    if st.button(
-        "💬 Q&A Assistant",
-        key="nav_qa",
-        use_container_width=True,
-    ):
-        st.session_state.current_page = "qa"
-        st.rerun()
-
-    st.markdown(
-        "<p style='color:#8b949e; font-size:0.78rem; text-transform:uppercase; "
-        "letter-spacing:2px; margin-top:16px; margin-bottom:8px;'>Vulnerabilities</p>",
-        unsafe_allow_html=True,
-    )
-
-    # Vulnerability navigation buttons
-    for vuln in VULNERABILITIES:
-        vid = vuln["id"]
-        risk = vuln.get("risk_rating", "Medium")
-        risk_colors = {
-            "Critical": "#e74c3c",
-            "High": "#e67e22",
-            "Medium": "#f1c40f",
-            "Low": "#2ecc71",
-        }
-        c = risk_colors.get(risk, "#ccc")
-        is_visited = vid in st.session_state.visited
-        check = "✅ " if is_visited else ""
-
-        # Short label: "API1 — BOLA"
-        title_short = vuln["title"].split("–", 1)
-        short_name = title_short[1].strip().split("(")[0].strip() if len(title_short) > 1 else vid
-
-        label = f"{check}{vid} — {short_name}"
-
-        is_active = (
-            st.session_state.current_page == f"vuln_{vid}"
-        )
-
-        btn_style = (
-            f"border-left: 3px solid {c} !important;" if is_active else ""
-        )
-        _ = st.button(
-            label,
-            key=f"nav_{vid}",
-            use_container_width=True,
-            help=vuln["short_desc"][:120] + "...",
-        )
-        if _:
-            st.session_state.current_page = f"vuln_{vid}"
-            mark_visited(vid)
-            st.rerun()
-
-    # ── PDF Export ─────────────────────────────────────────────────────────
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        "<p style='color:#8b949e; font-size:0.78rem; text-transform:uppercase; "
-        "letter-spacing:2px; margin-bottom:8px;'>Export</p>",
-        unsafe_allow_html=True,
-    )
-
-    if st.button("📄 Generate PDF Report", key="gen_pdf", use_container_width=True):
-        pdf_bytes = _generate_pdf()
-        st.download_button(
-            label="⬇️ Download PDF",
-            data=pdf_bytes,
-            file_name="owasp_api_security_report.pdf",
-            mime="application/pdf",
-            key="dl_pdf",
-            use_container_width=True,
-        )
-
-    # ── Footer ──────────────────────────────────────────────────────────────
-    st.markdown("<br>" * 2, unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div style="
-            text-align: center;
-            color: #4a5568;
-            font-size: 0.75rem;
-            border-top: 1px solid #1f2937;
-            padding-top: 12px;
-        ">
-            Based on <a href="https://owasp.org/API-Security/" target="_blank"
-                style="color:#3498db; text-decoration:none;">OWASP API Security 2023</a><br>
-            For educational purposes only.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# ── Main content area ─────────────────────────────────────────────────────────
-page = st.session_state.current_page
-
-if page == "summary":
-    render_summary()
-
-elif page == "qa":
-    render_qa_panel()
-
-elif page.startswith("vuln_"):
-    vid = page.replace("vuln_", "")
-    vuln = next((v for v in VULNERABILITIES if v["id"] == vid), None)
-    if vuln:
-        render_vuln_detail(vuln)
-    else:
-        st.error(f"Vulnerability '{vid}' not found.")
-
-else:
-    render_summary()
-
-
 # ── PDF generation ─────────────────────────────────────────────────────────────
 def _generate_pdf() -> bytes:
     """Generate a PDF summary report of all OWASP API vulnerabilities."""
     try:
         from fpdf import FPDF
     except ImportError:
-        # Fallback: return a simple text PDF-like placeholder
         return _fallback_text_report()
 
     class PDF(FPDF):
@@ -430,7 +262,6 @@ def _generate_pdf() -> bytes:
         # Title
         pdf.set_font("Helvetica", "B", 14)
         pdf.set_text_color(*rgb)
-        # Wrap long title
         title = vuln["title"]
         pdf.multi_cell(0, 8, title, align="L")
         pdf.ln(2)
@@ -533,3 +364,163 @@ def _fallback_text_report() -> bytes:
         lines.append(f"Risk: {vuln.get('risk_rating', 'N/A')}\n")
         lines.append(f"{vuln.get('short_desc', '')}\n\n")
     return "".join(lines).encode("utf-8")
+
+
+# ── Session state init ────────────────────────────────────────────────────────
+if "visited" not in st.session_state:
+    st.session_state.visited = set()
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "summary"
+
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    # Logo / title block
+    st.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #0f1923 0%, #1a2535 100%);
+            border: 1px solid #e74c3c44;
+            border-radius: 12px;
+            padding: 20px 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        ">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">🔐</div>
+            <div style="
+                color: #e74c3c;
+                font-size: 1.1rem;
+                font-weight: 700;
+                font-family: 'Courier New', monospace;
+                letter-spacing: 1px;
+            ">OWASP API Security</div>
+            <div style="color: #8b949e; font-size: 0.8rem; margin-top: 4px;">
+                Top 10 — 2023 Edition
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Navigation header
+    st.markdown(
+        "<p style='color:#8b949e; font-size:0.78rem; text-transform:uppercase; "
+        "letter-spacing:2px; margin-bottom:8px;'>Navigation</p>",
+        unsafe_allow_html=True,
+    )
+
+    # Summary button
+    visited_count = len(st.session_state.visited)
+    total_count = len(VULNERABILITIES)
+
+    if st.button(
+        f"📊 Dashboard  ({visited_count}/{total_count} studied)",
+        key="nav_summary",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "summary"
+        st.rerun()
+
+    if st.button(
+        "💬 Q&A Assistant",
+        key="nav_qa",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "qa"
+        st.rerun()
+
+    st.markdown(
+        "<p style='color:#8b949e; font-size:0.78rem; text-transform:uppercase; "
+        "letter-spacing:2px; margin-top:16px; margin-bottom:8px;'>Vulnerabilities</p>",
+        unsafe_allow_html=True,
+    )
+
+    # Vulnerability navigation buttons
+    for vuln in VULNERABILITIES:
+        vid = vuln["id"]
+        risk = vuln.get("risk_rating", "Medium")
+        risk_colors = {
+            "Critical": "#e74c3c",
+            "High": "#e67e22",
+            "Medium": "#f1c40f",
+            "Low": "#2ecc71",
+        }
+        c = risk_colors.get(risk, "#ccc")
+        is_visited = vid in st.session_state.visited
+        check = "✅ " if is_visited else ""
+
+        # Short label: "API1 — BOLA"
+        title_short = vuln["title"].split("–", 1)
+        short_name = title_short[1].strip().split("(")[0].strip() if len(title_short) > 1 else vid
+
+        label = f"{check}{vid} — {short_name}"
+
+        _ = st.button(
+            label,
+            key=f"nav_{vid}",
+            use_container_width=True,
+            help=vuln["short_desc"][:120] + "...",
+        )
+        if _:
+            st.session_state.current_page = f"vuln_{vid}"
+            mark_visited(vid)
+            st.rerun()
+
+    # ── PDF Export ─────────────────────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#8b949e; font-size:0.78rem; text-transform:uppercase; "
+        "letter-spacing:2px; margin-bottom:8px;'>Export</p>",
+        unsafe_allow_html=True,
+    )
+
+    if st.button("📄 Generate PDF Report", key="gen_pdf", use_container_width=True):
+        pdf_bytes = _generate_pdf()
+        st.download_button(
+            label="⬇️ Download PDF",
+            data=pdf_bytes,
+            file_name="owasp_api_security_report.pdf",
+            mime="application/pdf",
+            key="dl_pdf",
+            use_container_width=True,
+        )
+
+    # ── Footer ──────────────────────────────────────────────────────────────
+    st.markdown("<br>" * 2, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="
+            text-align: center;
+            color: #4a5568;
+            font-size: 0.75rem;
+            border-top: 1px solid #1f2937;
+            padding-top: 12px;
+        ">
+            Based on <a href="https://owasp.org/API-Security/" target="_blank"
+                style="color:#3498db; text-decoration:none;">OWASP API Security 2023</a><br>
+            For educational purposes only.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ── Main content area ─────────────────────────────────────────────────────────
+page = st.session_state.current_page
+
+if page == "summary":
+    render_summary()
+
+elif page == "qa":
+    render_qa_panel()
+
+elif page.startswith("vuln_"):
+    vid = page.replace("vuln_", "")
+    vuln = next((v for v in VULNERABILITIES if v["id"] == vid), None)
+    if vuln:
+        render_vuln_detail(vuln)
+    else:
+        st.error(f"Vulnerability '{vid}' not found.")
+
+else:
+    render_summary()

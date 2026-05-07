@@ -154,7 +154,7 @@ def _render_message(msg: dict) -> None:
         )
     else:
         st.markdown(
-            f"""
+            """
             <div style="
                 display: flex;
                 justify-content: flex-start;
